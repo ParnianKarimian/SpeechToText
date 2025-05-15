@@ -7,12 +7,12 @@ function App() {
   return (
     <div className="flex flex-row-reverse min-h-screen">
       <Sidebar />
-      <div className="flex-1 p-4">
+      <main className="flex-1 p-8 bg-white overflow-auto">
         <Routes>
           <Route path="/" element={<SpeechToText />} />
           <Route path="/archive" element={<Archive />} />
         </Routes>
-      </div>
+      </main>
     </div>
   );
 }
