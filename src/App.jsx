@@ -2,6 +2,8 @@ import { Routes, Route } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import SpeechToText from "./pages/SpeechToText";
 import Archive from "./pages/Archive";
+import './index.css';
+
 
 function App() {
   return (

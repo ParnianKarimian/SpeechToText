@@ -1,3 +1,11 @@
-body{
-  overflow-x: hidden;
+@font-face {
+  font-family: 'Shabnam';
+  src: url('/fonts/Shabnam/Shabnam.woff2') format('woff2'),
+       url('/fonts/Shabnam/Shabnam.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+body {
+  font-family: 'Shabnam', sans-serif;
 }
