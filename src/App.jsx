@@ -7,7 +7,7 @@ import './index.css';
 
 function App() {
   return (
-    <div className="flex flex-row-reverse min-h-screen">
+    <div className="flex flex-row-reverse min-h-screen h-screen overflow-hidden">
       <Sidebar />
       <main className="flex-1 p-8 bg-white overflow-auto">
         <Routes>

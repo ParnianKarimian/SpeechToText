@@ -4,9 +4,10 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        inter: ['shabnam', 'sans-serif'],
+        sans: ["Vazirmatn", "sans-serif"],
       },
     },
   },
+
   plugins: [],
 };

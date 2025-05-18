@@ -1,5 +1,11 @@
-import { CloudArrowDownIcon, LinkIcon, MicrophoneIcon  } from '@heroicons/react/24/outline';
+import {
+  CloudArrowDownIcon,
+  LinkIcon,
+  MicrophoneIcon,
+} from "@heroicons/react/24/outline";
 import { useState, useEffect, useRef } from "react";
+
+// useClickOutside: یک هوک سفارشی گذاشتم اینجا کاربردشو داخل ارایه میگم
 
 function useClickOutside(ref, onClose) {
   useEffect(() => {
@@ -13,6 +19,7 @@ function useClickOutside(ref, onClose) {
   }, [ref, onClose]);
 }
 
+// ***
 function LanguageSelector() {
   const [isOpen, setIsOpen] = useState(false);
   const [language, setLanguage] = useState(
@@ -123,6 +130,111 @@ function UserStatusDropdown() {
 
 export default function SpeechToText() {
   const [activeTab, setActiveTab] = useState("record");
+  const fileInputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const audioChunksRef = useRef([]);
+
+  const handleRecordClick = async () => {
+    if (!isRecording) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        const recorder = new MediaRecorder(stream);
+        audioChunksRef.current = [];
+
+        recorder.ondataavailable = (e) => {
+          audioChunksRef.current.push(e.data);
+        };
+
+        recorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunksRef.current, {
+            type: "audio/webm",
+          });
+          const formData = new FormData();
+          formData.append("media_file", audioBlob, "recorded_audio.webm");
+
+          setUploading(true);
+          setUploadMessage("");
+
+          try {
+            const res = await fetch(
+              "https://harf.roshan-ai.ir/api/transcribe_files/",
+              {
+                method: "POST",
+                headers: {
+                  Authorization:
+                    "Token a85d08400c622b50b18b61e239b9903645297196",
+                },
+                body: formData,
+              }
+            );
+
+            if (!res.ok) throw new Error("ارسال فایل ناموفق بود");
+
+            const result = await res.json();
+            setUploadMessage("✅ ضبط با موفقیت ارسال شد. در حال پردازش...");
+            console.log("🟢 پاسخ API:", result);
+          } catch (error) {
+            console.error("🔴 خطا:", error);
+            setUploadMessage("❌ ارسال فایل ناموفق بود.");
+          } finally {
+            setUploading(false);
+          }
+        };
+
+        recorder.start();
+        setMediaRecorder(recorder);
+        setIsRecording(true);
+      } catch (err) {
+        alert("دسترسی به میکروفون ممکن نیست!");
+        console.error(err);
+      }
+    } else {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    setUploadMessage("");
+
+    const formData = new FormData();
+    formData.append("media_file", file);
+
+    try {
+      const res = await fetch(
+        "https://harf.roshan-ai.ir/api/transcribe_files/",
+        {
+          method: "POST",
+          headers: {
+            Authorization: "Token a85d08400c622b50b18b61e239b9903645297196",
+          },
+          body: formData,
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("خطا در ارسال فایل");
+      }
+
+      const result = await res.json();
+      setUploadMessage("✅ فایل با موفقیت ارسال شد. در حال پردازش...");
+      console.log("🟢 پاسخ API:", result);
+    } catch (error) {
+      console.error("🔴 خطا:", error);
+      setUploadMessage("❌ ارسال فایل ناموفق بود.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const tabs = {
     record: {
@@ -131,22 +243,20 @@ export default function SpeechToText() {
         "برای شروع به صحبت، دکمه را فشار دهید \n متن پیاده شده آن، در اینجا ظاهر شود",
       bg: "bg-teal-400",
     },
-    upload: {
-      icon: <CloudArrowDownIcon className="h-6 w-6 text-white" />,
-      description:
-        "برای بارگذاری فایل گفتاری (صوتی/تصویری)، دکمه را فشار دهید \n متن پیاده شده آن، در اینجا ظاهر می‌شود",
-      bg: "bg-blue-500",
-    },
     link: {
       icon: (
-        <LinkIcon
-          fontSize="small"
-          className="fill-white absolute ml-4 mt-3 p-1 bg-red-500 rounded-full text-sm"
-        />
+        <LinkIcon className="w-8 h-8 text-white absolute left-4 top-1/2 -translate-y-1/2 bg-red-500 p-1 rounded-full" />
       ),
       input: true,
       description:
         "نشانی اینترنتی فایل حاوی گفتار (صوتی/تصویری) را وارد \n و دکمه را فشار دهید",
+    },
+    upload: {
+      icon: <CloudArrowDownIcon className="h-6 w-6 text-white" />,
+      input: false,
+      description:
+        "برای بارگذاری فایل گفتاری (صوتی/تصویری)، دکمه را فشار دهید \n متن پیاده شده آن، در اینجا ظاهر می‌شود",
+      bg: "bg-blue-500",
     },
   };
   const tabOrder = ["record", "upload", "link"];
@@ -169,11 +279,12 @@ export default function SpeechToText() {
         className="flex justify-center flex-row space-x-2 border-gray-200"
         dir="rtl"
       >
+        {/* *** */}
         {tabOrder.map((key) => {
           const tabIcons = {
-            record: <MicrophoneIcon className="w-8 h-8 text-gray-500" />,
-            upload: <CloudArrowDownIcon className="h-6 w-6 text-gray-500" />,
-            link: <LinkIcon className="w-8 h-8 text-gray-500" />,
+            record: <MicrophoneIcon className="w-5 h-5 text-gray-500" />,
+            upload: <CloudArrowDownIcon className="h-5 w-5 text-gray-500" />,
+            link: <LinkIcon className="w-5 h-5 text-gray-500" />,
           };
           const bgColor =
             key === "record"
@@ -196,20 +307,21 @@ export default function SpeechToText() {
             <button
               key={key}
               onClick={() => setActiveTab(key)}
-              className={`py-2 px-4 rounded ${
+              className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded transition-all ${
                 activeTab === key
                   ? `${bgColor} ${borderColor} text-white`
                   : "border-transparent text-gray-400 hover:bg-teal-100 hover:text-teal-600"
               }`}
             >
-              {tabIcons[key]} {labels[key]}
+              <span className="w-5 h-5">{tabIcons[key]}</span>
+              <span className="text-base">{labels[key]}</span>
             </button>
           );
         })}
       </div>
-
+      {/* *** */}
       <div
-        className={`border-2 rounded-2xl p-6 shadow-md w-[653px] h-[429px] mx-auto flex items-center justify-center flex-col gap-2 ${
+        className={`border-2 rounded-2xl p-6 shadow-md w-[653px] min-h-[429px] mx-auto flex flex-col items-center justify-center gap-4 overflow-hidden transition-all duration-300 ${
           activeTab === "record"
             ? "border-teal-500"
             : activeTab === "upload"
@@ -217,7 +329,7 @@ export default function SpeechToText() {
             : "border-red-500"
         }`}
       >
-        {tabs[activeTab].input ? (
+        {activeTab === "link" ? (
           <>
             <div className="relative w-80">
               {tabs[activeTab].icon}
@@ -231,14 +343,64 @@ export default function SpeechToText() {
               {tabs[activeTab].description}
             </p>
           </>
-        ) : (
+        ) : activeTab === "upload" ? (
           <>
-            <button className={`rounded-full p-4 ${tabs[activeTab].bg}`}>
+            <input
+              type="file"
+              accept="audio/*,video/*"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            <button
+              className={`rounded-full p-4 ${tabs[activeTab].bg}`}
+              onClick={() => fileInputRef.current.click()}
+              disabled={uploading}
+            >
               {tabs[activeTab].icon}
             </button>
             <p className="text-gray-600 text-center whitespace-pre-line">
-              {tabs[activeTab].description}
+              {uploading ? "در حال ارسال فایل..." : tabs[activeTab].description}
             </p>
+            {uploadMessage && (
+              <p
+                className={`text-sm mt-2 ${
+                  uploadMessage.includes("✅")
+                    ? "text-green-600"
+                    : "text-red-500"
+                }`}
+              >
+                {uploadMessage}
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <button
+              className={`rounded-full p-4 ${tabs[activeTab].bg} ${
+                isRecording ? "animate-pulse" : ""
+              }`}
+              onClick={handleRecordClick}
+              disabled={uploading}
+            >
+              {tabs[activeTab].icon}
+            </button>
+            <p className="text-gray-600 text-center whitespace-pre-line">
+              {isRecording
+                ? "در حال ضبط صدا... برای توقف دوباره کلیک کنید."
+                : tabs[activeTab].description}
+            </p>
+            {uploadMessage && (
+              <p
+                className={`text-sm mt-2 ${
+                  uploadMessage.includes("✅")
+                    ? "text-green-600"
+                    : "text-red-500"
+                }`}
+              >
+                {uploadMessage}
+              </p>
+            )}
           </>
         )}
       </div>

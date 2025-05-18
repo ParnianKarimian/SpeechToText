@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 export default function Sidebar() {
   return (
-    <div className="w-[166px] bg-[linear-gradient(to_bottom,#00B5A0,#00C69B)] h-[740px] rounded-lg text-white flex flex-col items-center relative *:overflow-hidden">
+    <div className="w-[166px] bg-[linear-gradient(to_bottom,#00B5A0,#00C69B)] h-full rounded-lg text-white flex flex-col items-center relative">
       <img src="/img/site Title (1).png" alt="Site Logo" className="mt-16" />
       <Link
         to="/"
